@@ -1,0 +1,7 @@
+server:
+  port: 8030
+
+#数据源配置
+spring:
+  profiles:
+    active: dev

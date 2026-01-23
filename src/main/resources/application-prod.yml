@@ -1,0 +1,81 @@
+spring:
+  redis:
+    host: 192.168.0.13
+    port: 6379
+    password:
+    database: 0
+    ssl: false
+    ##redis 集群环境配置
+    #cluster:
+    #  nodes: 192.168.0.182:7001,192.168.0.182:7002,192.168.0.182:7003
+    #  commandTimeout: 5000
+    timeout: 3000
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      # MySql、PostgreSQL、SqlServer校验
+      validation-query: select 1
+      # Oracle校验
+      #validation-query: select 1 from dual
+      validation-query-timeout: 2000
+      initial-size: 5
+      max-active: 20
+      min-idle: 5
+      max-wait: 60000
+      test-on-borrow: false
+      test-on-return: false
+      test-while-idle: true
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      stat:
+        merge-sql: true
+        log-slow-sql: true
+        slow-sql-millis: 2000
+      stat-view-servlet:
+        enabled: true
+        login-username: blade
+        login-password: 1qaz@WSX
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: '*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*'
+        session-stat-enable: true
+        session-stat-max-count: 10
+
+      master:
+        # SqlServer 185 pacs
+        driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+        url: jdbc:sqlserver://192.168.0.11:1433;DatabaseName=xrdbv5;trustServerCertificate=true
+        username: sa
+        password: dbMaster2.1@pacs
+      pacsdcom:
+        # SqlServer 150 minipacs
+        driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+        url: jdbc:sqlserver://192.168.0.11:1433;DatabaseName=xrdcmv5;trustServerCertificate=true
+        username: sa
+        password: dbMaster2.1@pacs
+      frame:
+        # SqlServer 185 pacs
+        driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+        url: jdbc:sqlserver://192.168.0.11:1433;DatabaseName=xrdbv5;trustServerCertificate=true
+        username: sa
+        password: dbMaster2.1@pacs
+
+#广州互联
+guangzhou-link:
+  gateway:
+    ip: 192.168.0.240
+    port: 9001
+  org_code: 455418526
+  org_pwd: A958B6E7590858F5E053097011ACAFBE
+  public-key: MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC4o2sDb1pW5/w/E5ogzjnjLyvJTz+JXmwlsiCQKxUY4IrhiwJBGb6CRtcyrPEsAV5Uh90mR3M3HPYV/O8s9LEwGTTioZutzNN49KpuXsSZSCTzBYzHKLn1xi0xLO5+WTKZPTFbvuNlFtN8JbFIqLeGcxvtSCQDfxNrlHr0a92rqQIDAQAB
+
+image:
+  address: http://192.168.3.17:8080/image/
+
+
+# PACS回传报告到HIS WebService 配置
+hisReport:
+  methodName: getpacsresult
+  nameSpaceUrl: http://tempurl.org
+  webserviceUrl: http://200.100.100.196:9058/pacsweb/n_webservice.asmx?wsdl
