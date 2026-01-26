@@ -20,8 +20,8 @@ import org.xinrui.mapper.EmrExClinicalItemMapper;
 import org.xinrui.mapper.EmrExClinicalMapper;
 import org.xinrui.pacs.mapper.PacsExamReportMapper;
 import org.xinrui.service.IPacsInfectionService;
+import org.xinrui.util.EmrExClinicalItemUtil;
 import org.xinrui.util.EmrExClinicalUtil;
-import org.xinrui.util.ModalityMapping;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -200,32 +200,17 @@ public class PacsInfectionSchedule {
 
 		//处理检查项目名称和检查项目代码
 		String modality = itemDatum.getModality();
-		String itemCode = ModalityMapping.getItemCode(modality);
-		String itemName = ModalityMapping.getItemName(modality);
-		emrExClinicalItemDto.setItemCode(itemCode);
-		emrExClinicalItemDto.setItemName(itemName);
+		emrExClinicalItemDto.setItemCode(EmrExClinicalItemUtil.getItemCode(modality));
+		emrExClinicalItemDto.setItemName(EmrExClinicalItemUtil.getItemName(modality));
 
 		//处理检查结果代码
-		//1为阳性，表示有异常,0为阴性，表示无异常。01为未见异常，02为异常，03为不确定
-		String resultCode;
-		if(itemDatum.getPositive().equals("1")){
-			resultCode="02";
-		} else if (itemDatum.getPositive().equals("0")) {
-			resultCode="01";
-		}else{
-			resultCode="03";
-		}
-		emrExClinicalItemDto.setExaminationResultCode(resultCode);
+		Integer positive  =itemDatum.getPositive();
+		emrExClinicalItemDto.setExaminationResultCode(EmrExClinicalItemUtil.getExaminationResultCode(positive));
 
 		//处理检查结果名称
-		if(resultCode.equals("01")){
-			emrExClinicalItemDto.setExaminationResultName("未见异常");
-		} else if (resultCode.equals("02")) {
-			emrExClinicalItemDto.setExaminationResultName("异常");
-		}else{
-			emrExClinicalItemDto.setExaminationResultName("不确定");
-		}
+		emrExClinicalItemDto.setExaminationResultName(EmrExClinicalItemUtil.getExaminationResultName(positive));
 
+		//处理操作时间
 		emrExClinicalItemDto.setOperationTime(new Date());
 		return emrExClinicalItemDto;
 	}
