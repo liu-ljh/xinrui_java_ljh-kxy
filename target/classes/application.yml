@@ -3,5 +3,7 @@ server:
 
 #数据源配置
 spring:
+  application:
+    name: pacs-3rd-web-baiyun2yuan
   profiles:
     active: dev

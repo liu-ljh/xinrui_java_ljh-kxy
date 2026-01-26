@@ -45,7 +45,7 @@ spring:
       master:
         # SqlServer 185 pacs
         driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-        url: jdbc:sqlserver://192.168.3.17:1433;DatabaseName=xrdbv53-1
+        url: jdbc:sqlserver://192.168.3.17:1433;DatabaseName=xrdbv53-1;encrypt=false;loginTimeout=30
         username: sa
         password: RuituMaster1.1
       pacsdcom:
@@ -79,5 +79,8 @@ hisReport:
   nameSpaceUrl: http://tempurl.org
   webserviceUrl: http://200.100.100.196:9058/pacsweb/n_webservice.asmx?wsdl
 
+baiyun2yuan:
+  ip: 200.100.100.218
+  port: 15400
 
 

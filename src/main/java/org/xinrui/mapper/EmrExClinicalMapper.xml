@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.xinrui.mapper.EmrExClinicalMapper">
+
+    <!-- 检查报告主表查询 -->
+    <select id="selectEmrExClinical" resultType="org.xinrui.entity.EmrExClinical">
+        SELECT
+        ter.OID AS Oid,
+        tpp.Patient_ID AS patientId,
+        tpa.Patient_Source_Type AS patientSourceType,
+        tpa.Application_ID AS applicationId,
+        tpp.Name AS name,
+        tpp.Person_ID AS personId,
+        tpr.Modality AS modality,
+        ter.Report_ID AS reportId,
+        ter.Report_Date AS reportDate,
+        ter.Reader AS reader,
+        tpr.tenant_OID AS tenantOid,
+        tpr.Application_Dept_OID AS applicationDeptOid
+        FROM T_Pacs_Exam_Report ter
+        LEFT JOIN T_Pacs_Registration tpr ON ter.Registration_OID = tpr.OID
+        LEFT JOIN T_Pacs_Patient tpp ON tpr.Patient_OID = tpp.OID
+        LEFT JOIN T_Pacs_Application tpa ON tpr.Application_OID = tpa.OID
+        WHERE ter.Report_Date BETWEEN #{query.startTime} AND #{query.endTime}
+    </select>
+
+</mapper>
