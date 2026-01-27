@@ -56,17 +56,14 @@ public class PacsInfectionServiceImpl implements IPacsInfectionService {
 					Func.toJson(resultDTO));
 				return true;
 			} else {
-				log.error("【uploadEmrExClinicalItemApi】上传失败：param:{}, result:{}, desc:{},errorCode{},errorName{}",
+				log.error("【uploadEmrExClinicalItemApi】上传失败：param:{}, result:{}",
 					Func.toJson(emrExClinicalDatum),
 					Func.toJson(resultDTO));
-//					resultDTO == null ? "无返回结果" : resultDTO.getDesc(),
-//					resultDTO == null ? "无返回结果" : resultDTO.getErrorCode(),
-//					resultDTO == null ? "无返回结果" : resultDTO.getErrorName());
 				return false;
 			}
 		} catch (Exception e){
 			log.error("【postEmrExClinicalItem】请求异常：param:{}, errMsg:{}",
-				Func.toJson(emrExClinicalDatum), e);
+					Func.toJson(emrExClinicalDatum), e);
 			return false;
 		}
 	}
@@ -98,7 +95,7 @@ public class PacsInfectionServiceImpl implements IPacsInfectionService {
 			}
 		} catch (Exception e){
 			log.error("【postEmrExClinicalItem】请求异常：param:{}, errMsg:{}",
-				Func.toJson(emrExClinicalItemDatum), e);
+					Func.toJson(emrExClinicalItemDatum), e);
 			return false;
 		}
 	}
