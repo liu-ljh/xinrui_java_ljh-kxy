@@ -11,6 +11,7 @@ import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.xinrui.config.PacsInfectionScheduleConfig;
 import org.xinrui.core.tool.utils.DateUtil;
 import org.xinrui.dto.EmrExClinicalDto;
 import org.xinrui.dto.EmrExClinicalItemDto;
@@ -26,6 +27,8 @@ import org.xinrui.util.EmrExClinicalUtil;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static org.xinrui.config.PacsInfectionScheduleConfig.*;
+
 /**
  *
  * 白云二院传染病上报（检查部分）定时上传任务
@@ -37,13 +40,8 @@ import java.util.*;
 @Component
 public class PacsInfectionSchedule {
 
-
-	private static final int PAGE_SIZE = 50;
-
-
 	@Autowired
 	private EmrExClinicalMapper emrExClinicalMapper;
-
 
 	@Autowired
 	private EmrExClinicalItemMapper emrExClinicalItemMapper;
@@ -54,14 +52,10 @@ public class PacsInfectionSchedule {
 	@Autowired
 	private IPacsInfectionService iPacsInfectionService;
 
-	public static final String REDIS_INFECTION_REPORT_DATA = "baiyun2yuan-pacs-web:INFECTION_REPORT_DATA";
-	public static final String REDIS_INFECTION_ITEM_DATA = "baiyun2yuan-pacs-web:INFECTION_ITEM_DATA";
-
-
 	/**
 	 * 每晚23点59分上传当天的检查报告项目数据
 	 */
-	@Scheduled(cron = "0 59 23 * * ?")
+	@Scheduled(cron = PacsInfectionScheduleConfig.UPLOAD_CLINICAL_DATA_CRON)
 	public void uploadEmrExClinicalData() {
 		log.info("【uploadEmrExClinicalData】开始上传检查报告数据");
 
@@ -118,7 +112,7 @@ public class PacsInfectionSchedule {
 	/**
 	 * 每晚23点59分上传当天的检查报告项目数据
 	 */
-	@Scheduled(cron = "0 59 23 * * ?")
+	@Scheduled(cron = PacsInfectionScheduleConfig.UPLOAD_CLINICAL_ITEM_DATA_CRON)
 	public void uploadEmrExClinicalItemData() {
 		//设置查询日期参数
 		Date today= new Date();
