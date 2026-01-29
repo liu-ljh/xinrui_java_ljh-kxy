@@ -20,9 +20,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
-import static org.xinrui.schedule.PacsInfectionSchedule.REDIS_INFECTION_ITEM_DATA;
-import static org.xinrui.schedule.PacsInfectionSchedule.REDIS_INFECTION_REPORT_DATA;
+import org.xinrui.config.PacsInfectionScheduleConfig;
 
+
+import static org.xinrui.config.PacsInfectionScheduleConfig.*;
 
 @Slf4j
 @AllArgsConstructor

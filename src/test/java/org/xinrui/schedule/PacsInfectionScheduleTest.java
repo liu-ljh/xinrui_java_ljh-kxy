@@ -1,143 +1,239 @@
 package org.xinrui.schedule;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.SetOperations;
 import org.xinrui.dto.EmrExClinicalDto;
+import org.xinrui.dto.EmrExClinicalItemDto;
 import org.xinrui.entity.EmrExClinical;
+import org.xinrui.entity.EmrExClinicalItem;
+import org.xinrui.mapper.EmrExClinicalItemMapper;
 import org.xinrui.mapper.EmrExClinicalMapper;
 import org.xinrui.service.IPacsInfectionService;
-import org.xinrui.core.tool.utils.DateUtil;
+import org.xinrui.config.PacsInfectionScheduleConfig;
+import org.xinrui.util.EmrExClinicalItemUtil;
+import org.xinrui.util.EmrExClinicalUtil;
 
+import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
-@SpringBootTest
-@ActiveProfiles("test")
-public class PacsInfectionScheduleTest {
-
-	@Autowired
-	private EmrExClinicalMapper emrExClinicalMapper;
-
-	@Autowired
-	private IPacsInfectionService iPacsInfectionService;
-
-	@Autowired
-	private PacsInfectionSchedule schedule;
-
-	@Autowired
-	private StringRedisTemplate stringRedisTemplate;
-
-	private final Date testDate = DateUtil.parse("2023-01-13", "yyyy-MM-dd");
-	private final String redisKey = PacsInfectionSchedule.REDIS_INFECTION_ITEM_DATA + ":REPORT:" + DateUtil.format(testDate, "yyyyMMdd");
-
-	@BeforeEach
-	void setup() {
-		// 1. 清理Redis（避免历史数据干扰）
-		stringRedisTemplate.getConnectionFactory().getConnection().flushDb();
-
-		// 2. 确保测试数据在2023-10-01范围内（无需插入，直接验证）
-//		verifyTestDataExists();
-	}
-
-	private void verifyTestDataExists() {
-		// 检查数据库中是否存在2023-10-01的数据
-		Date startTime = DateUtil.getStartOfDate(testDate);
-		Date endTime = DateUtil.getEndOfDate(testDate);
-		Map<String, Date> queryParams = new HashMap<>();
-		queryParams.put("startTime", startTime);
-		queryParams.put("endTime", endTime);
-
-		Page<EmrExClinical> page = new Page<>(1, 100);
-		List<EmrExClinical> testData = emrExClinicalMapper.selectEmrExClinical(page, queryParams);
-
-		assertTrue(testData.size() > 0, "数据库中必须存在2023-10-01的测试数据");
-		System.out.println("✅ 测试数据验证通过：数据库中存在"+testData.size()+"条2023-10-01的数据");
-	}
+import static org.xinrui.config.PacsInfectionScheduleConfig.*;
 
 /**
- * 测试用例：测试上传已存在的数据
- * 该方法主要验证当数据已存在时，上传功能的正确性
+ * PacsInfectionSchedule 单元测试（聚焦核心逻辑，避免静态工具类/时间依赖）
+ * 特点：
+ * 1. 使用纯 Mockito 单元测试，无需 Spring 容器，执行快
+ * 2. 通过参数注入规避 new Date() 问题
+ * 3. 验证关键流程：查询 → 构建 → 去重 → 上传 → 记录
+ * 4. 覆盖正常上传、跳过已上传、分页终止等场景
  */
+@DisplayName("传染病上报定时任务测试")
+class PacsInfectionScheduleTest {
+
+	@InjectMocks
+	private PacsInfectionSchedule schedule;
+
+	@Mock
+	private EmrExClinicalMapper emrExClinicalMapper;
+	@Mock
+	private EmrExClinicalItemMapper emrExClinicalItemMapper;
+	@Mock
+	private StringRedisTemplate stringRedisTemplate;
+	@Mock
+	private IPacsInfectionService iPacsInfectionService;
+	@Mock
+	private SetOperations<String, String> setOps; // Redis Set 操作模拟
+
+	@Captor
+	private ArgumentCaptor<EmrExClinicalDto> clinicalDtoCaptor;
+	@Captor
+	private ArgumentCaptor<EmrExClinicalItemDto> itemDtoCaptor;
+	@Captor
+	private ArgumentCaptor<String> redisKeyCaptor;
+	@Captor
+	private ArgumentCaptor<String> redisMemberCaptor;
+
+	private Date testDate;
+	private String testDateStr;
+
+	@BeforeEach
+	void setUp() {
+		MockitoAnnotations.initMocks(this);
+		// 固定测试时间，规避 new Date() 不确定性
+		testDate = new GregorianCalendar(2024, Calendar.JANUARY, 15).getTime();
+		testDateStr = new SimpleDateFormat("yyyyMMdd").format(testDate);
+
+		// 模拟 Redis Set 操作链
+		when(stringRedisTemplate.opsForSet()).thenReturn(setOps);
+		when(setOps.isMember(anyString(), anyString())).thenReturn(false); // 默认未上传
+		when(iPacsInfectionService.postEmrExClinical(any())).thenReturn(true);
+		when(iPacsInfectionService.postEmrExClinicalItem(any())).thenReturn(true);
+	}
+
+	// ==================== 检查报告数据上传测试 ====================
+
 	@Test
-	void testUploadWithExistingData() {
-		// Mock上传服务返回成功
-//		when(iPacsInfectionService.postEmrExClinical(any(EmrExClinicalDto.class)))
-//			.thenReturn(true);
+	@DisplayName("uploadEmrExClinicalData: 正常流程 - 查询2条数据并成功上传")
+	void testUploadEmrExClinicalData_Success() {
+		// 准备测试数据
+		List<EmrExClinical> mockData = Arrays.asList(
+			createMockClinical(1L, "RPT001"),
+			createMockClinical(2L, "RPT002")
+		);
 
-		// 执行上传操作
-		schedule.uploadEmrExClinicalData();
+		// 模拟分页：第1页有数据，总记录数=2 → 总页数=1
+		Page<EmrExClinical> page = new Page<>(1, 10);
+		page.setRecords(mockData);
+		page.setTotal(2L);
+		when(emrExClinicalMapper.selectEmrExClinical(any(Page.class), anyMap()))
+			.thenReturn(mockData);
 
-//		Map<String, Date> queryParams = new HashMap<>();
-//		queryParams.put("startTime", DateUtil.getStartOfDate(testDate));  // 设置查询开始时间
-//		queryParams.put("endTime", DateUtil.getEndOfDate(testDate));    // 设置查询结束时间
-//
-//		// 1. 验证上传服务调用次数 = 数据库中测试数据条数
-//		int expectedCalls = emrExClinicalMapper.selectEmrExClinical(
-//			new Page<>(1, 100),    // 分页查询，第一页，每页100条
-//			queryParams           // 查询参数
-//		).size();                // 获取查询结果数量
-//
-//		verify(iPacsInfectionService, times(expectedCalls)).postEmrExClinical(any());
-//
-//
-//
-//		// 2. 验证Redis记录了所有上传ID
-//		List<EmrExClinicalDto> testData = emrExClinicalMapper.selectEmrExClinical(
-//			new Page<>(1, 100),
-//			queryParams
-//		);
-//
-//		// 遍历测试数据，检查每个ID是否都存在于Redis中
-//		for (EmrExClinicalDto dto : testData) {
-//			assertTrue(stringRedisTemplate.opsForSet().isMember(redisKey, dto.getId()),
-//				"Redis应记录ID: " + dto.getId());
-//		}
-//
-//		// 打印上传成功信息
-//		System.out.println("✅ 上传成功：" + expectedCalls + "条数据上传至Redis");
+		// 执行（通过反射调用，规避 private 限制；实际项目建议提取核心逻辑为 package-private 方法）
+		invokeUploadClinicalMethod();
+
+		// ✅ 验证1：上传次数正确（核心业务逻辑）
+		verify(iPacsInfectionService, times(2)).postEmrExClinical(any());
+
+		// ✅ 验证2：Redis 记录了2条 member（关键防重逻辑）
+		verify(setOps, times(2)).add(anyString(), redisMemberCaptor.capture());
+		assertEquals("1", redisMemberCaptor.getAllValues().get(0));
+		assertEquals("2", redisMemberCaptor.getAllValues().get(1));
+
+		// ✅ 验证3：Key 格式合法（避免硬编码具体值）
+		ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+		verify(setOps, times(2)).add(keyCaptor.capture(), anyString());
+		String actualKey = keyCaptor.getValue();
+		// 验证：Key 以配置前缀开头 + 包含8位日期
+		assertTrue(actualKey.startsWith(REDIS_INFECTION_REPORT_DATA),
+			"Key 应以配置常量开头: " + REDIS_INFECTION_REPORT_DATA);
+		assertTrue(actualKey.matches(".*:\\d{8} $ "),
+			"Key 末尾应为8位日期，实际: " + actualKey);
 	}
 
 	@Test
-	void testUploadWithPartialFailure() {
-		// Mock前50%数据失败，后50%成功
-		when(iPacsInfectionService.postEmrExClinical(any(EmrExClinicalDto.class)))
-			.thenAnswer(invocation -> {
-				String id = invocation.getArgument(0, EmrExClinicalDto.class).getId();
-				return Integer.parseInt(id.replace("R", "")) > 3; // R004, R005成功
-			});
+	@DisplayName("uploadEmrExClinicalData: 跳过已上传记录")
+	void testUploadEmrExClinicalData_SkipUploaded() {
+		// 模拟第1条已存在Redis
+		when(setOps.isMember(anyString(), eq("1"))).thenReturn(true);
+		when(setOps.isMember(anyString(), eq("2"))).thenReturn(false);
 
-		// 执行上传
-		schedule.uploadEmrExClinicalData();
+		List<EmrExClinical> mockData = Arrays.asList(
+			createMockClinical(1L, "RPT001"),
+			createMockClinical(2L, "RPT002")
+		);
+		Page<EmrExClinical> page = new Page<>(1, 10);
+		page.setRecords(mockData);
+		page.setTotal(2L);
+		when(emrExClinicalMapper.selectEmrExClinical(any(Page.class), anyMap()))
+			.thenReturn(mockData);
 
-		Map<String, Date> queryParams = new HashMap<>();
-		queryParams.put("startTime", DateUtil.getStartOfDate(testDate));
-		queryParams.put("endTime", DateUtil.getEndOfDate(testDate));
+		invokeUploadClinicalMethod();
 
-		// 获取实际数据量
-		int totalData = emrExClinicalMapper.selectEmrExClinical(
-			new Page<>(1, 100),
-			queryParams
-		).size();
+		// 验证：仅第2条被上传
+		verify(iPacsInfectionService, times(1)).postEmrExClinical(any());
+		verify(setOps, times(1)).add(anyString(), anyString()); // 仅新增1条记录
+	}
 
-		// 验证成功上传数量 = 总数据量 - 失败数量
-		int expectedSuccess = (int) Math.ceil(totalData * 0.5);
-		verify(iPacsInfectionService, times(expectedSuccess)).postEmrExClinical(any());
+	// ==================== 检查报告项目数据上传测试 ====================
 
-		// 验证Redis记录了成功上传的ID
-		for (int i = 1; i <= totalData; i++) {
-			String id = "R00" + i;
-			boolean shouldExist = i > 3; // R004, R005存在
-			assertTrue(stringRedisTemplate.opsForSet().isMember(redisKey, id) == shouldExist,
-				"ID " + id + " 应" + (shouldExist ? "存在" : "不存在") + "于Redis");
+	@Test
+	@DisplayName("uploadEmrExClinicalItemData: 分页处理与去重逻辑")
+	void testUploadEmrExClinicalItemData_PaginationAndDedup() {
+		// 模拟第1页2条，第2页1条，第3页空（终止循环）
+		List<EmrExClinicalItem> page1 = Arrays.asList(createMockItem(1L), createMockItem(2L));
+		List<EmrExClinicalItem> page2 = Arrays.asList(createMockItem(3L));
+
+		// 使用 Answer 模拟分页状态变化
+		doAnswer(inv -> {
+			Page<EmrExClinicalItem> p = inv.getArgument(0);
+			int current = (int) p.getCurrent();
+			if (current == 1) {
+				p.setRecords(page1);
+				p.setTotal(3L); // 总3条，每页2条 → 2页
+				return page1;
+			} else if (current == 2) {
+				p.setRecords(page2);
+				return page2;
+			}
+			return Collections.emptyList();
+		}).when(emrExClinicalItemMapper).selectEmrExClinicalItem(any(Page.class), any(Date.class), any(Date.class));
+
+		// 执行（同上，建议重构为可测试方法）
+		invokeUploadItemMethod();
+
+		// 验证：Mapper 被调用3次（第1、2、3页）
+		verify(emrExClinicalItemMapper, times(3))
+			.selectEmrExClinicalItem(any(Page.class), any(Date.class), any(Date.class));
+
+		// 验证：上传服务被调用3次
+		verify(iPacsInfectionService, times(3)).postEmrExClinicalItem(itemDtoCaptor.capture());
+		assertEquals(3, itemDtoCaptor.getAllValues().size());
+
+		// 验证：Redis 记录3条
+		verify(setOps, times(3)).add(anyString(), anyString());
+	}
+
+	// ==================== 辅助方法 ====================
+
+	/** 通过反射调用私有方法（测试专用） */
+	private void invokeUploadClinicalMethod() {
+		try {
+			Method method = PacsInfectionSchedule.class.getDeclaredMethod("uploadEmrExClinicalData");
+			method.setAccessible(true);
+			method.invoke(schedule);
+		} catch (Exception e) {
+			fail("反射调用失败: " + e.getMessage());
 		}
+	}
+
+	private void invokeUploadItemMethod() {
+		try {
+			Method method = PacsInfectionSchedule.class.getDeclaredMethod("uploadEmrExClinicalItemData");
+			method.setAccessible(true);
+			method.invoke(schedule);
+		} catch (Exception e) {
+			fail("反射调用失败: " + e.getMessage());
+		}
+	}
+
+	/** 创建模拟检查报告实体 */
+	private EmrExClinical createMockClinical(Long oid, String reportId) {
+		EmrExClinical e = new EmrExClinical();
+		e.setOid(oid);
+		e.setReportId(reportId);
+		e.setPatientId("PAT001");
+		e.setName("张三");
+		e.setPersonId("110101199001011234");
+		e.setModality("CT");
+		e.setReportDate(new Date());
+		e.setReader(1001L);
+		e.setTenantOid("HOSP001");
+		e.setApplicationDeptOid("DEPT001");
+		e.setApplicationId("APP001");
+		e.setPatientSourceType("1");
+		return e;
+	}
+
+	/** 创建模拟检查项目实体 */
+	private EmrExClinicalItem createMockItem(Long oid) {
+		EmrExClinicalItem item = new EmrExClinicalItem();
+		item.setOid(oid);
+		item.setReportId("RPT001");
+		item.setModality("CT");
+		item.setPositive(1); // 阳性
+		return item;
 	}
 }

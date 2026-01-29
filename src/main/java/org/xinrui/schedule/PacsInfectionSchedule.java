@@ -58,16 +58,13 @@ public class PacsInfectionSchedule {
 	@Scheduled(cron = PacsInfectionScheduleConfig.UPLOAD_CLINICAL_DATA_CRON)
 	public void uploadEmrExClinicalData() {
 		log.info("【uploadEmrExClinicalData】开始上传检查报告数据");
-
 		 //设置查询日期参数
 		Date today = new Date();
 		Date startTime = DateUtil.getStartOfDate(today);
 		Date endTime = DateUtil.getEndOfDate(today);
-
 		Map<String, Date> queryParams = new HashMap<>();
 		queryParams.put("startTime", startTime);
 		queryParams.put("endTime", endTime);
-
 		// 设置分页查询参数
 		int currentPage = 1;
 		Page<EmrExClinical> page = new Page<>(1, PAGE_SIZE, true);
