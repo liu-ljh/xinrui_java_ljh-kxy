@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Data
 @Component
 @ConfigurationProperties(prefix = "baiyun2yuan")
-public class BaiYun2YuanConfig {
+public class ServerEndpointConfig {
 	private String ip;
 	private String port;
 

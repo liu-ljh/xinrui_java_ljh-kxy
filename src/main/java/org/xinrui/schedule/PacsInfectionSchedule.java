@@ -10,8 +10,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-import org.xinrui.config.PacsInfectionScheduleConfig;
 import org.xinrui.core.tool.utils.DateUtil;
 import org.xinrui.dto.EmrExClinicalDto;
 import org.xinrui.dto.EmrExClinicalItemDto;
@@ -27,7 +25,6 @@ import org.xinrui.util.EmrExClinicalUtil;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static org.xinrui.config.PacsInfectionScheduleConfig.*;
 
 /**
  *
@@ -52,10 +49,18 @@ public class PacsInfectionSchedule {
 	@Autowired
 	private IPacsInfectionService iPacsInfectionService;
 
+	// 分页大小配置
+	public static final int PAGE_SIZE = 50;
+
+	// Redis键配置
+	public static final String REDIS_INFECTION_REPORT_DATA = "baiyun2yuan-pacs-web:INFECTION_REPORT_DATA";
+	public static final String REDIS_INFECTION_ITEM_DATA = "baiyun2yuan-pacs-web:INFECTION_ITEM_DATA";
+
+
 	/**
 	 * 每晚23点59分上传当天的检查报告项目数据
 	 */
-	@Scheduled(cron = PacsInfectionScheduleConfig.UPLOAD_CLINICAL_DATA_CRON)
+	@Scheduled(cron = "0 59 23 * * ?")
 	public void uploadEmrExClinicalData() {
 		log.info("【uploadEmrExClinicalData】开始上传检查报告数据");
 		 //设置查询日期参数
@@ -109,7 +114,7 @@ public class PacsInfectionSchedule {
 	/**
 	 * 每晚23点59分上传当天的检查报告项目数据
 	 */
-	@Scheduled(cron = PacsInfectionScheduleConfig.UPLOAD_CLINICAL_ITEM_DATA_CRON)
+	@Scheduled(cron = "0 59 23 * * ?")
 	public void uploadEmrExClinicalItemData() {
 		//设置查询日期参数
 		Date today= new Date();
@@ -123,10 +128,10 @@ public class PacsInfectionSchedule {
 		while (true){
 			//数据库查询报告项目数据
 			List<EmrExClinicalItem> pageData = emrExClinicalItemMapper.selectEmrExClinicalItem(page,startTime,endTime);
-			page.setCurrent(++currentPage);
 			if(currentPage>page.getPages()||pageData==null||pageData.isEmpty()){
 				break;
 			}
+			page.setCurrent(++currentPage);
 			try{
 				// 构建检查报告项目数据
 				for(EmrExClinicalItem emrExClinicalItemDatum:pageData){

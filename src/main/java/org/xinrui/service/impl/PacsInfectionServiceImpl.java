@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.xinrui.config.BaiYun2YuanConfig;
+import org.xinrui.config.ServerEndpointConfig;
 import org.xinrui.core.tool.utils.DateUtil;
 import org.xinrui.dto.EmrExClinicalItemDto;
 import org.xinrui.util.CommonUtil;
@@ -20,17 +20,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
-import org.xinrui.config.PacsInfectionScheduleConfig;
+import static org.xinrui.schedule.PacsInfectionSchedule.REDIS_INFECTION_ITEM_DATA;
+import static org.xinrui.schedule.PacsInfectionSchedule.REDIS_INFECTION_REPORT_DATA;
 
-
-import static org.xinrui.config.PacsInfectionScheduleConfig.*;
 
 @Slf4j
 @AllArgsConstructor
 @Service
 public class PacsInfectionServiceImpl implements IPacsInfectionService {
 
-	private BaiYun2YuanConfig baiYun2YuanConfig;
+	private ServerEndpointConfig serverEndpointConfig;
 	private StringRedisTemplate stringRedisTemplate;
 
 	@Override
@@ -44,7 +43,7 @@ public class PacsInfectionServiceImpl implements IPacsInfectionService {
 
 		try {
 			//todo
-			String apiUrl = baiYun2YuanConfig.getUrl() + "/hclient/emr/receive/emrExClinical";
+			String apiUrl = serverEndpointConfig.getUrl() + "/hclient/emr/receive/emrExClinical";
 			//测试使用testUrl
 //			String apiUrl = "http://localhost:8081/hclient/emr/receive/emrExClinical";
 			String result = CommonUtil.sendPostRequest(apiUrl, requestBody);
@@ -78,7 +77,7 @@ public class PacsInfectionServiceImpl implements IPacsInfectionService {
 		}
 		JSONObject requestBody = JSON.parseObject(json);
 		try {
-			String apiUrl = baiYun2YuanConfig.getUrl()+"/hclient/emr/receive/emrExClinicalItem";
+			String apiUrl = serverEndpointConfig.getUrl()+"/hclient/emr/receive/emrExClinicalItem";
 			String result = CommonUtil.sendPostRequest(apiUrl, requestBody);
 			ResultDTO resultDTO = CommonUtil.convertToResultDTO(result);
 
