@@ -61,10 +61,9 @@ public class PacsInfectionSchedule {
 	 * 每晚23点59分上传当天的检查报告项目数据
 	 */
 	@Scheduled(cron = "0 59 23 * * ?")
-	@Scheduled(cron = "0 59 23 * * ?")
 	public void uploadEmrExClinicalData() {
 		log.info("【uploadEmrExClinicalData】任务开始，准备上传检查报告数据");
-		//设置查询日期参数
+		// 设置查询日期参数
 		Date today = new Date();
 		Date startTime = DateUtil.getStartOfDate(today);
 		Date endTime = DateUtil.getEndOfDate(today);
@@ -73,51 +72,42 @@ public class PacsInfectionSchedule {
 		queryParams.put("endTime", endTime);
 		// 设置分页查询参数
 		int currentPage = 1;
-		Page<EmrExClinical> page = new Page<>(currentPage, PAGE_SIZE, false); // 不查询总记录数以提升性能
+		Page<EmrExClinical> page = new Page<>(currentPage, PAGE_SIZE, false);
 		String dateStr = DateUtil.format(today, "yyyyMMdd");
 		String uploadReportRedisKey = REDIS_INFECTION_REPORT_DATA + ":" + dateStr;
 		try {
 			// 上传检查报告数据
 			while (true) {
-				log.debug("【uploadEmrExClinicalData】正在查询第 {} 页数据", currentPage);
 				// 数据库查询报告数据
 				List<EmrExClinical> pageData = emrExClinicalMapper.selectEmrExClinical(page, queryParams);
+
 				if (pageData == null || pageData.isEmpty()) {
-					log.info("【uploadEmrExClinicalData】第 {} 页无数据，查询结束", currentPage);
 					break;
 				}
-				log.info("【uploadEmrExClinicalData】第 {} 页查询到 {} 条数据，开始处理", currentPage, pageData.size());
 				// 构建检查报告数据
 				for (EmrExClinical emrExClinicalDatum : pageData) {
-					String oid = String.valueOf(emrExClinicalDatum.getOid());
 					try {
 						EmrExClinicalDto reportDatum = buildEmrExClinicalDto(emrExClinicalDatum);
 						String reportKeyVal = reportDatum.getId();
 						// 校验ID是否有效，避免Redis key为null或"null"
 						if (reportKeyVal == null || "null".equals(reportKeyVal)) {
-							log.warn("【uploadEmrExClinicalData】数据ID无效，跳过上传。OID：{}", oid);
 							continue;
 						}
 						if (stringRedisTemplate.opsForSet().isMember(uploadReportRedisKey, reportKeyVal)) {
-							log.debug("【uploadEmrExClinicalData】数据已存在，跳过上传。ID：{}", reportKeyVal);
 							continue;
 						}
 						// 上传检查报告数据
 						boolean uploadSuccess = iPacsInfectionService.postEmrExClinical(reportDatum);
 						if (uploadSuccess) {
 							stringRedisTemplate.opsForSet().add(uploadReportRedisKey, reportKeyVal);
-							log.debug("【uploadEmrExClinicalData】数据上传成功。ID：{}", reportKeyVal);
-						} else {
-							log.warn("【uploadEmrExClinicalData】接口返回上传失败。ID：{}", reportKeyVal);
 						}
 					} catch (Exception e) {
 						// 捕获单条数据处理异常，避免中断整个批次
-						log.error("【uploadEmrExClinicalData】处理单条数据异常，OID：{}，错误信息：{}", oid, e.getMessage(), e);
+						log.error("【uploadEmrExClinicalData】第{}/{}页，id为{}，数据上传异常：{}", currentPage, pageData.size(), emrExClinicalDatum.getOid(), e.getMessage());
 					}
 				}
 				// 如果当前页数据量小于分页大小，说明已经是最后一页了
 				if (pageData.size() < PAGE_SIZE) {
-					log.info("【uploadEmrExClinicalData】第 {} 页数据量不足一页，判定为最后一页", currentPage);
 					break;
 				}
 				// 准备查询下一页
@@ -129,6 +119,7 @@ public class PacsInfectionSchedule {
 			log.info("【uploadEmrExClinicalData】任务执行结束");
 		}
 	}
+
 
 
 	/**
