@@ -7,10 +7,12 @@
         SELECT
             exam.OID AS oid,
             rpt.Report_ID AS reportId,
-            exam.Modality AS modality,
-            rpt.Positive AS positive
-        FROM T_Pacs_Exam exam
-                 LEFT JOIN T_Pacs_Exam_Report rpt ON exam.OID = rpt.Exam_OID
-        WHERE exam.Study_Time BETWEEN #{startTime} AND #{endTime}
+            reg.Modality AS modality,
+            rpt.Positive AS positive,
+            rpt.Report_Date AS reportDate
+        FROM T_Pacs_Exam_Report rpt
+        LEFT JOIN T_Pacs_Registration reg ON reg.OID = rpt.Registration_OID
+        LEFT JOIN T_Pacs_Exam exam ON exam.OID = rpt.Exam_OID
+        WHERE rpt.Report_Date BETWEEN #{startTime} AND #{endTime}
     </select>
 </mapper>

@@ -20,6 +20,7 @@ public class EmrExClinicalDictConstants {
 		ACTIVITY_TYPE_DICT.put("7", "首次病程");
 		ACTIVITY_TYPE_DICT.put("8", "日常病程");
 		ACTIVITY_TYPE_DICT.put("9", "出院");
+		ACTIVITY_TYPE_DICT.put("10", "其他");
 	}
 
 	// 检查类别字典映射（映射为type_code）

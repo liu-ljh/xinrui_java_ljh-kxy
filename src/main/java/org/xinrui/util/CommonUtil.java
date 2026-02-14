@@ -9,6 +9,9 @@ import org.xinrui.core.tool.utils.Func;
 import org.xinrui.dto.ResultDTO;
 
 
+/**
+ * @author Administrator
+ */
 public class CommonUtil {
 
 	/**

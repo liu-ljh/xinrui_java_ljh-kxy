@@ -5,18 +5,23 @@
     <!-- 检查报告主表查询 -->
     <select id="selectEmrExClinical" resultType="org.xinrui.entity.EmrExClinical">
         SELECT
-        ter.OID AS Oid,
-        tpp.Patient_ID AS patientId,
-        tpa.Patient_Source_Type AS patientSourceType,
-        tpa.Application_ID AS applicationId,
-        tpp.Name AS name,
-        tpp.Person_ID AS personId,
-        tpr.Modality AS modality,
-        ter.Report_ID AS reportId,
-        ter.Report_Date AS reportDate,
-        ter.Reader AS reader,
-        tpr.tenant_OID AS tenantOid,
-        tpr.Application_Dept_OID AS applicationDeptOid
+        ter.OID,
+        tpp.Patient_Id,
+        tpa.Patient_Source_Type,
+        tpr.Outpatient_No,
+        tpr.Admission_No,
+        tpr.Bed_No,
+        tpa.Application_ID,
+        tpp.Name,
+        tpp.Person_ID,
+        tpr.Modality,
+        ter.Findings,
+        ter.Impressions,
+        ter.Report_ID,
+        ter.Report_Date,
+        ter.Reader,
+        tpr.tenant_OID,
+        tpa.Outref_Application_Dept
         FROM T_Pacs_Exam_Report ter
         LEFT JOIN T_Pacs_Registration tpr ON ter.Registration_OID = tpr.OID
         LEFT JOIN T_Pacs_Patient tpp ON tpr.Patient_OID = tpp.OID

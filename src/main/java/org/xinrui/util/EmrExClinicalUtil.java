@@ -9,6 +9,7 @@ import java.util.Map;
 /**
  * EMR(电子病历)临床相关的工具类
  * 提供各种转换和判断方法
+ * @author Administrator
  */
 public class EmrExClinicalUtil {
 
@@ -34,6 +35,15 @@ public class EmrExClinicalUtil {
 		return convert(EmrExClinicalDictConstants.DEPT_CODE_NAME_DICT, deptCode);
 	}
 
+	public static String getDeptNameByCode(String deptName){
+		for (Map.Entry<String, String> entry : EmrExClinicalDictConstants.DEPT_CODE_NAME_DICT.entrySet()) {
+			if (entry.getValue().equals(deptName)) {
+				return entry.getKey();
+			}
+		}
+		return "D99";
+	}
+
 	public static String convertOrgCode(String orgCode){
 		return convert(EmrExClinicalDictConstants.ORG_CODE_DICT, orgCode);
 	}
@@ -43,7 +53,7 @@ public class EmrExClinicalUtil {
 			return null;
 		}
 		String result = dictMap.get(code);
-		return result != null ? result : "未能正确处理，得到结果为空值";
+		return result != null ? result : "未知";
 	}
 
 	public static String idCardTypeCodeJudge(String idCard){

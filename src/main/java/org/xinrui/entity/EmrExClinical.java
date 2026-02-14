@@ -6,10 +6,10 @@ import lombok.Data;
 
 import java.util.Date;
 
-/*
-* 此类用于从T_Pacs_Exam_Report、T_Pacs_Registration、T_Pacs_Patient、T_Pacs_Application表中查询数据
-* */
-
+/**
+ * 检查报告表数据
+ * @author Administrator
+ */
 @Data
 public class EmrExClinical {
 
@@ -22,8 +22,11 @@ public class EmrExClinical {
 	@ApiModelProperty(value = "患者来源类别")
 	private String patientSourceType;
 
-	@ApiModelProperty(value = "检查申请单号")
-	private String applicationId;
+	@ApiModelProperty(value = "门诊号")
+	private String outpatientNo;
+
+	@ApiModelProperty(value = "住院号")
+	private String admissionNo;
 
 	@ApiModelProperty(value = "患者姓名")
 	private String name;
@@ -31,8 +34,23 @@ public class EmrExClinical {
 	@ApiModelProperty(value = "身份证号码")
 	private String personId;
 
+	@ApiModelProperty(value = "床号")
+	private String bedNo;
+
+	@ApiModelProperty(value = "检查申请单号")
+	private String applicationId;
+
+	@ApiModelProperty(value = "申请检查科室")
+	private String applicationDeptName;
+
 	@ApiModelProperty(value = "检查项目类别")
 	private String modality;
+
+	@ApiModelProperty(value = "所见")
+	private String findings;
+
+	@ApiModelProperty(value = "结论")
+	private String impressions;
 
 	@ApiModelProperty(value = "检查报告id")
 	private String reportId;
@@ -45,9 +63,6 @@ public class EmrExClinical {
 
 	@ApiModelProperty(value = "检查机构id")
 	private String tenantOid;
-
-	@ApiModelProperty(value = "检查部门id")
-	private String applicationDeptOid;
 
 
 	// 为所有字符串类型属性添加判空处理
@@ -83,8 +98,8 @@ public class EmrExClinical {
 		return tenantOid != null ? tenantOid : "未知";
 	}
 
-	public String getApplicationDeptOid() {
-		return applicationDeptOid != null ? applicationDeptOid : "未知";
+	public String getApplicationDeptName() {
+		return applicationDeptName != null ? applicationDeptName : "未知";
 	}
 
 	// 非字符串类型属性保持原始逻辑（不进行判空）

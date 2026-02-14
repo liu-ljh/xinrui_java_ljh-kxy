@@ -79,7 +79,8 @@ hisReport:
   nameSpaceUrl: http://tempurl.org
   webserviceUrl: http://200.100.100.196:9058/pacsweb/n_webservice.asmx?wsdl
 
-baiyun2yuan:
+# PACS白云二院-传染病上报 配置
+pacs-idiss:
   ip: 200.100.100.218
   port: 15400
 
